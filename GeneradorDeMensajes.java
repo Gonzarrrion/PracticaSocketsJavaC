@@ -51,7 +51,7 @@ public class GeneradorDeMensajes {
     DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream()); // Send to server
     
     // Creamos el mensaje con el dato y la ip y puerto
-    outToServer.writeUTF(dato + ":" + ip + ":" + puerto + "\n");
+    outToServer.writeBytes(dato + ":" + ip + ":" + puerto + "\n");
     
     // Limpiamos el buffer
     outToServer.flush();

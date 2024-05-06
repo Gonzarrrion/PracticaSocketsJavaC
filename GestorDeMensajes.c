@@ -71,33 +71,35 @@ int main() {
         // Valido el mensaje
         if (dato <= 50) {
             printf("Mensaje inválido descartado.\n");
-            close(socketCliente);
-            printf("GestorDeMensajes TCP escuchando en el %d 8081...\n", PUERTO);
-            continue; // Pruebo con la siguiente conexión
-        }
-
-        // Preparo el socket UDP
-        socketUDP = socket(AF_INET, SOCK_DGRAM, 0);
-        if (socketUDP < 0) {
-            perror("Error al crear el socket UDP");
-            close(socketCliente);
-            continue; // Pruebo con la siguiente conexión
-        }
-
-        destUDP.sin_family = AF_INET;
-        destUDP.sin_port = htons(puertoDestino);
-        inet_pton(AF_INET, ipDestino, &destUDP.sin_addr);
-
-        // Envio el mensaje usando UDP
-        if (sendto(socketUDP, msg, strlen(msg), 0, (struct sockaddr *)&destUDP, sizeof(destUDP)) < 0) {
-            perror("Error al enviar mensaje UDP");
         } else {
-            printf("Mensaje reenviado a %s:%d\n", ipDestino, puertoDestino);
-        }
+            printf("Mensaje válido.\n");
 
-        close(socketCliente);
-        close(socketUDP);
+            // Preparo el socket UDP
+            socketUDP = socket(AF_INET, SOCK_DGRAM, 0);
+            if (socketUDP < 0) {
+                perror("Error al crear el socket UDP");
+                close(socketCliente);
+                continue; // Pruebo con la siguiente conexión
+            }
+
+            destUDP.sin_family = AF_INET;
+            destUDP.sin_port = htons(puertoDestino);
+            inet_pton(AF_INET, ipDestino, &destUDP.sin_addr);
+
+            // Envio el mensaje usando UDP
+            if (sendto(socketUDP, msg, strlen(msg), 0, (struct sockaddr *)&destUDP, sizeof(destUDP)) < 0) {
+                perror("Error al enviar mensaje UDP");
+            } else {
+                printf("Mensaje reenviado a %s:%d\n", ipDestino, puertoDestino);
+            }
+
+            close(socketCliente);
+            close(socketUDP);
+
+            printf("GestorDeMensajes TCP escuchando en el %d 8081...\n", PUERTO);
+        }
     }
+    close(socketCliente);
 
     return 0;
 }
