@@ -22,150 +22,136 @@ contabilizaran, de manera independiente, el número de mensajes recibidos del
 GestorDeMensajes, mostrando el número total de mensajes recibidos cada vez que
 reciban un nuevo mensaje.
 Implementar en lenguaje Java el GeneradorDeMensajes y el ReceptorDeMensaje y
-en lenguaje C el GestorDeMensajes.*/
+en lenguaje C el GestorDeMensajes.
+Ten en cuenta que el GeneradordeMensajes actuara como cliente, el
+GestorDeMensajes como servidor y el ReceptorDeMensajes como cliente pasivo,
+ya que no enviara ningún mensaje y solo recibirá mensajes del GestorDeMensajes.
+
+Coge este codigo de ejemplo de cliente para el GeneradorDeMensajes.java y 
+tambien ten en cuanta los nombres de variables y funciones y hazlos similares
+adaptandolos a la descripcion del problema.
+*/
 
 import java.io.*;
 import java.net.*;
 
 public class GeneradorDeMensajes {
-    public static void main(String[] args) {
-        try {
-            // Creamos el socket
-            Socket socket = new Socket("localhost", 1235);
-            System.out.println("Conexión establecida");
-            // Creamos los flujos de entrada y salida
-            DataInputStream dis = new DataInputStream(socket.getInputStream());
-            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-            // Creamos el mensaje
-            String mensaje = "Hola GestorDeMensajes";
-            // Enviamos el mensaje
-            dos.writeUTF(mensaje);
-            // Cerramos los flujos
-            dis.close();
-            dos.close();
-            socket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+
+   public static void main(String[] args) throws Exception {
+
+    // Generamos un dato aleatorio del 0 al 100
+    int dato = 80; //(int) (Math.random() * 100);
+    String ip = "172.25.120.143";
+    int puerto = 8081;
+    
+    // Creamos el socket
+    Socket clientSocket = new Socket(ip, puerto);
+    
+    // Creamos el flujo de salida
+    DataOutputStream outToServer = new DataOutputStream(clientSocket.getOutputStream()); // Send to server
+    
+    // Creamos el mensaje con el dato y la ip y puerto
+    outToServer.writeUTF(dato + ":" + ip + ":" + puerto + "\n");
+    
+    // Limpiamos el buffer
+    outToServer.flush();
+
+    // Cerramos el socket
+    clientSocket.close();
     }
 }
 
-// Codigo GestorDeMensajes.c
 /*
+Para que el código anterior funcione, el codigo en C de GestorDeMensajes.c
+debe ser, teniendo en cuenta que Siempre tiene que sacar el mensaje recibido por pantalla y luego 
+verificar que el dato sea mayor que 50, si es asi, enviar un mensaje
+por protocolo UDP al ReceptorDeMensajes con la ip, puerto y dato. Si no, mostrar
+por pantalla que el dato no es mayor que 50. Y la ip es 192.168.1.118
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>
+#include <netinet/in.h>
 #include <unistd.h>
+#include <arpa/inet.h>
+
+#define PORT 8181
+#define IP "192.168.1.118"
 
 int main() {
-    int socket_desc, client_sock, c, read_size;
-    struct sockaddr_in server, client;
-    char client_message[2000];
+    int serverSocket, newSocket;
+    struct sockaddr_in serverAddr;
+    struct sockaddr_storage serverStorage;
+    socklen_t addr_size;
+    char buffer[1024];
+    int dato;
+    char ip[15];
+    int puerto;
+    int i;
 
     // Creamos el socket
-    socket_desc = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_desc == -1) {
-        printf("No se pudo crear el socket");
-        return 1;
+    serverSocket = socket(PF_INET, SOCK_STREAM, 0);
+
+    // Configuramos la dirección
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_port = htons(PORT);
+    serverAddr.sin_addr.s_addr = inet_addr(IP);
+    memset(serverAddr.sin_zero, '\0', sizeof serverAddr.sin_zero);
+
+    // Ligamos el socket a la dirección
+    bind(serverSocket, (struct sockaddr *) &serverAddr, sizeof(serverAddr));
+
+    // Escuchamos por el socket
+    if(listen(serverSocket,5)==0)
+        printf("Esperando conexiones...\n");
+    else
+        printf("Error\n");
+
+    // Aceptamos la conexión
+    addr_size = sizeof serverStorage;
+    newSocket = accept(serverSocket, (struct sockaddr *) &serverStorage, &addr_size);
+
+    // Creamos el flujo de entrada
+    recv(newSocket, buffer, 1024, 0);
+
+    // Obtenemos el dato
+    sscanf(buffer, "%s %d %d", ip, &puerto, &dato);
+
+    // Mostramos el mensaje
+    printf("Mensaje recibido: %s %d %d\n", ip, puerto, dato);
+
+    // Comprobamos si el dato es mayor que 50
+    if(dato > 50) {
+        // Creamos el socket
+        int udpSocket;
+        struct sockaddr_in udpAddr;
+        socklen_t udpAddrLen = sizeof(udpAddr);
+
+        // Creamos el socket
+        udpSocket = socket(AF_INET, SOCK_DGRAM, 0);
+
+        // Configuramos la dirección
+        udpAddr.sin_family = AF_INET;
+        udpAddr.sin_port = htons(puerto);
+        udpAddr.sin_addr.s_addr = inet_addr(ip);
+        memset(udpAddr.sin_zero, '\0', sizeof udpAddr.sin_zero);
+
+        // Enviamos el mensaje
+        sendto(udpSocket, buffer, 1024, 0, (struct sockaddr *) &udpAddr, udpAddrLen);
+
+        // Cerramos el socket
+        close(udpSocket);
+    } else {
+        printf("El dato no es mayor que 50\n");
     }
 
-    // Preparamos la estructura sockaddr_in
-    server.sin_family = AF_INET;
-    server.sin_addr.s_addr = INADDR_ANY;
-    server.sin_port = htons(1235);
-
-    // Enlazamos el socket a la dirección IP y puerto
-    if (bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
-        printf("Error en el enlace");
-        return 1;
-    }
-
-    // Escuchamos las conexiones
-    listen(socket_desc, 3);
-
-    // Aceptamos y esperamos la conexión
-    printf("Esperando conexiones...\n");
-    c = sizeof(struct sockaddr_in);
-    client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t *)&c);
-    if (client_sock < 0) {
-        printf("Error al aceptar la conexión");
-        return 1;
-    }
-    printf("Conexión establecida\n");
-
-    // Recibimos el mensaje del cliente
-    if ((read_size = recv(client_sock, client_message, 2000, 0)) > 0) {
-        // Mostramos el mensaje
-        printf("Mensaje recibido: %s\n", client_message);
-    }
-
-    // Cerramos los sockets
-    close(socket_desc);
-    close(client_sock);
+    // Cerramos el socket
+    close(newSocket);
+    close(serverSocket);
 
     return 0;
+
 }
-
-Codigo ReceptorDeMensajes.java
-
-import java.io.*;
-import java.net.*;
-
-public class ReceptorDeMensajes {
-    public static void main(String[] args) {
-        try {
-            // Creamos el socket
-            ServerSocket serverSocket = new ServerSocket(1235);
-            System.out.println("Esperando conexiones...");
-            // Aceptamos la conexión
-            Socket socket = serverSocket.accept();
-            System.out.println("Conexión establecida");
-            // Creamos los flujos de entrada y salida
-            DataInputStream dis = new DataInputStream(socket.getInputStream());
-            DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-            // Creamos el mensaje
-            String mensaje = dis.readUTF();
-            // Mostramos el mensaje
-            System.out.println("Mensaje recibido: " + mensaje);
-            // Cerramos los flujos
-            dis.close();
-            dos.close();
-            socket.close();
-            serverSocket.close();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-}
-
-/*Para compilar y ejecutar el código GestorDeMensajes.c, ejecutamos los siguientes
-comandos:
-gcc GestorDeMensajes.c -o GestorDeMensajes
-./GestorDeMensajes
-Para compilar y ejecutar el código GeneradorDeMensajes.java, ejecutamos los
-siguientes comandos:
-javac GeneradorDeMensajes.java
-java GeneradorDeMensajes
-Para compilar y ejecutar el código ReceptorDeMensajes.java, ejecutamos los
-siguientes comandos:
-javac ReceptorDeMensajes.java
-java ReceptorDeMensajes
-Para comprobar el correcto funcionamiento del sistema, ejecutamos el código
-GeneradorDeMensajes.java en una terminal, luego ejecutamos el código GestorDeMensajes.c en otra terminal y finalmente ejecutamos el código ReceptorDeMensajes.java en una tercera terminal. De esta manera, podremos comprobar que el mensaje se envía correctamente desde el GeneradorDeMensajes al GestorDeMensajes y luego se muestra por pantalla en el ReceptorDeMensajes.
-
-
-¿Cómo puedo hacer para que el GestorDeMensajes se quede escuchando y no se cierre la ejecución al recibir un mensaje?
-Para que el GestorDeMensajes se quede escuchando y no se cierre la ejecución al 
-recibir un mensaje, puedes utilizar un bucle infinito que se encargue de recibir 
-los mensajes y procesarlos. De esta manera, el GestorDeMensajes seguirá escuchando y 
-procesando los mensajes de forma continua. Aquí te dejo un ejemplo de cómo modificar 
-el código del GestorDeMensajes para que se quede escuchando:
-
-Corrige el codigo porque se me puede enviar directamente el mensaje desde GeneradorDeMensajes a ReceptorDeMensajes
-sin pasar por GestorDeMensajes
-Dime solo las lineas que tendria que modificar
-
 
 */

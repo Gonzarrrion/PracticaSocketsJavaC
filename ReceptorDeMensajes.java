@@ -5,7 +5,7 @@ public class ReceptorDeMensajes {
     public static void main(String[] args) {
         try {
             // Creamos el socket
-            ServerSocket serverSocket = new ServerSocket(1235);
+            ServerSocket serverSocket = new ServerSocket(8182);
             System.out.println("Esperando conexiones...");
             // Aceptamos la conexión
             Socket socket = serverSocket.accept();
