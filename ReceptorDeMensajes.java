@@ -41,7 +41,7 @@ public class ReceptorDeMensajes {
                 System.out.print("¿Quieres seguir escuchando? (s/n): ");
                 String respuesta = scanner.next();
 
-                // Si la respuesta es "n", salimos del bucle
+                // Si la respuesta es "n", salimos del bucle, si es "s" seguimos escuchando
                 if (respuesta.equalsIgnoreCase("n")) {
                     System.out.println("Deteniendo el servidor...");
                     break;

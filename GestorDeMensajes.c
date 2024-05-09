@@ -20,7 +20,7 @@ int main() {
     char ipDestino[INET_ADDRSTRLEN];
     int puertoDestino;
 
-    // Pedimos al usuario que introduzca el puerto
+    // Pedimos al usuario que introduzca el puerto de escucha del gestor
     int PUERTO;
     printf("Introduce el puerto de escucha del gestor: ");
     scanf("%d", &PUERTO);

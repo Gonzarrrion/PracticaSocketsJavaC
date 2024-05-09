@@ -48,7 +48,7 @@ public class GeneradorDeMensajes {
         System.out.print("¿Quieres enviar otro mensaje? (s/n): ");
         String respuesta = scanner.next();
 
-        // Si la respuesta es "n", salimos del bucle
+        // Si la respuesta es "n", salimos del bucle, si es "s" seguimos enviando mensajes
         if (respuesta.equalsIgnoreCase("n")) {
             System.out.println("Deteniendo el generador de mensajes...");
             break;
