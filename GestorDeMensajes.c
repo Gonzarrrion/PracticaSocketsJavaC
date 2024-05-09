@@ -7,16 +7,23 @@
 #include <arpa/inet.h>
 
 #define LONGITUD 100
-#define PUERTO 8081
 
 int main() {
     int socketServidor, socketCliente, socketUDP;
     struct sockaddr_in servidor, cliente, destUDP;
     socklen_t tamano = sizeof(struct sockaddr);
+    char buffer[LONGITUD];
+    int bytesRecibidos;
+    int totalBytesRecibidos = 0;
     char msg[LONGITUD];
     int dato;
     char ipDestino[INET_ADDRSTRLEN];
     int puertoDestino;
+
+    // Pedimos al usuario que introduzca el puerto
+    int PUERTO;
+    printf("Introduce el puerto de escucha del gestor: ");
+    scanf("%d", &PUERTO);
 
     // Inicializo estructura del servidor TCP
     servidor.sin_family = AF_INET;
@@ -43,7 +50,7 @@ int main() {
         exit(-1);
     }
 
-    printf("GestorDeMensajes TCP escuchando en el puerto %d...\n", PUERTO);
+    printf("\nGestorDeMensajes (TCP) escuchando en el puerto %d...\n", PUERTO);
 
     // Acepto conexiones
     while (1) {
@@ -53,14 +60,24 @@ int main() {
             continue; // Pruebo con la siguiente conexión
         }
 
+        // Limpiar el mensaje
         memset(msg, '\0', LONGITUD);
-        if (recv(socketCliente, msg, LONGITUD, 0) < 0) {
-            perror("Error al recibir mensaje");
-            close(socketCliente);
-            continue; // Pruebo con la siguiente conexión
-        }
 
-        printf("Mensaje recibido: %s\n", msg);
+        // Leer el mensaje en trozos
+        do {
+            bytesRecibidos = recv(socketCliente, buffer, LONGITUD - 1, 0);
+            if (bytesRecibidos < 0) {
+                perror("Error al recibir mensaje");
+                close(socketCliente);
+                continue; // Pruebo con la siguiente conexión
+            }
+
+            buffer[bytesRecibidos] = '\0'; // Asegurarse de que el buffer es una cadena válida
+            strcat(msg, buffer); // Añadir el buffer al mensaje
+            totalBytesRecibidos += bytesRecibidos;
+        } while (bytesRecibidos > 0 && totalBytesRecibidos < LONGITUD);
+
+        printf("Mensaje recibido: %s", msg);
 
         // Parseo el mensaje para extraer el dato, IP y puerto destino
         sscanf(msg, "%d:%15[^:]:%d", &dato, ipDestino, &puertoDestino);
@@ -71,6 +88,7 @@ int main() {
         // Valido el mensaje
         if (dato <= 50) {
             printf("Mensaje inválido descartado.\n");
+            printf("\nGestorDeMensajes (TCP) escuchando en el puerto %d...\n", PUERTO);
         } else {
             printf("Mensaje válido.\n");
 
@@ -96,7 +114,7 @@ int main() {
             close(socketCliente);
             close(socketUDP);
 
-            printf("GestorDeMensajes TCP escuchando en el %d 8081...\n", PUERTO);
+            printf("\nGestorDeMensajes (TCP) escuchando en el %d...\n", PUERTO);
         }
     }
     close(socketCliente);
